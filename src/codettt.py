@@ -4,6 +4,7 @@
 #   UNSW CSE
 #   COMP3411/9814
 #   Code for Tic-Tac-Toe with Alpha-Beta search
+#   This is for the 3x3 tic-tac-toe; need to do the same with a 9x9 one
 #
 import numpy as np
 
@@ -17,32 +18,53 @@ DRAW          = 4
 
 MAX_MOVE      = 9
 
-MIN_EVAL = -1000000
-MAX_EVAL =  1000000
+MIN_EVAL = -1000
+MAX_EVAL =  1000
 
 def main():
+    # so you have the board here ?
+    # basically. need a 2d arrayyy
     board = EMPTY*np.ones(10,dtype=np.int32)
+    # all the moves
     move = np.zeros(10,dtype=np.int32)
+    # whichever is the best move ?
     best_move = np.zeros(10,dtype=np.int32)
+    # is the agent being referred human or not ?
     is_human = (True,False)
     game_status = STILL_PLAYING
     player = 1
     m = 0
 
+    # while m < MAX_MOVE (so m is being incremeneted ???) and you are still playing ?
     while m < MAX_MOVE and game_status == STILL_PLAYING:
         m += 1
+        # just checking m basically
+        print("m at this point is", m)
+        # what
         player = 1-player;
+        # if the player is human ?
         if is_human[player]:
             print_board( board )
             move[m] = input('Enter move [1-9]: ')
+            # ou wait. so if the move is not empty or if the move is not in the range of 1 to 9 ? or if the board is not empty then you
+            # need to get a number that works
             while move[m] < 1 or move[m] > 9 or board[move[m]] != EMPTY:
+                # then you ask for the move again
                 move[m] = input('Enter move [1-9]: ')
         else:
+            # this is where the agent gets to decide what to play so this is what we are coding
+            # if in the range of 1-9 and board is empty, find the best move that can be made
             alphabeta( player,m,board,MIN_EVAL,MAX_EVAL,best_move )
+            # and that move becomes the best move, which then allows you to make the best move
+            # m = 1-9 iteration 
             move[m] = best_move[m];
         game_status = make_move( player, m, move, board )
 
     print_board( board )
+
+# just smth lol
+def temp():
+    print("HIILLLL")
 
 #**********************************************************
 #   Print the board
@@ -69,24 +91,30 @@ def alphabeta( player, m, board, alpha, beta, best_move ):
             this_move = r
             board[this_move] = player # make move
             this_eval = -alphabeta(1-player,m+1,board,-beta,-alpha,best_move)
+            print("At this point: ", this_eval, "with the best value being, ", best_eval)
             board[this_move] = EMPTY; # undo move
             if this_eval > best_eval:
                 best_move[m] = this_move;
                 best_eval = this_eval
                 if best_eval > alpha:
                     alpha = best_eval
+                    # what is beta even atp
+                    print("alpha is ", alpha, "and beta MEOWW is ", beta)
                     if alpha >= beta: # cutoff
                         return( alpha )
 
     if this_move == 0:  # no legal moves
         return( 0 )     # DRAW
     else:
+        print("alpha is sssss ", alpha)
+        print("best move values", best_move)
         return( alpha )
 
 #**********************************************************
 #   Make specified move on the board and return game status
 #
 def make_move( player, m, move, board ):
+    print("m at this point is", m, "which is subject to change")
     if board[move[m]] != EMPTY:
         print('Illegal Move')
         return ILLEGAL_MOVE

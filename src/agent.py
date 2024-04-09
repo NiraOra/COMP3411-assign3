@@ -7,6 +7,7 @@
 import socket
 import sys
 import numpy as np
+import codettt
 
 # a board cell can hold:
 #   0 - Empty
@@ -42,11 +43,14 @@ def print_board(board):
 # choose a move to play
 def play():
     # print_board(boards)
-
+    # TODO: HERE; you need to implement the negamax algorithm
+    # add the file codettt.py here or whateves and then call that here because the agent here is human (?)
     # just play a random move for now
-    n = np.random.randint(1,9)
+    codettt.temp()
+    n = np.random.randint(1,9) 
+    # n = 6
     while boards[curr][n] != 0:
-        n = np.random.randint(1,9)
+        n = np.random.randint(1,9) 
 
     # print("playing", n)
     place(curr, n, 1)
