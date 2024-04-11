@@ -18,8 +18,8 @@ DRAW          = 4
 
 MAX_MOVE      = 9
 
-MIN_EVAL = -1000
-MAX_EVAL =  1000
+MIN_EVAL = -100
+MAX_EVAL =  100
 
 def main():
     # so you have the board here ?
@@ -35,12 +35,13 @@ def main():
     player = 1
     m = 0
 
-    # while m < MAX_MOVE (so m is being incremeneted ???) and you are still playing ?
+    # while m < MAX_MOVE (so m is being incremented ???) and you are still playing ?
     while m < MAX_MOVE and game_status == STILL_PLAYING:
         m += 1
         # just checking m basically
         print("m at this point is", m)
         # what
+        # so either human or agent (which is us in this case)
         player = 1-player;
         # if the player is human ?
         if is_human[player]:
@@ -61,6 +62,31 @@ def main():
         game_status = make_move( player, m, move, board )
 
     print_board( board )
+
+# TODO: my best move love. this is where you shoudl implement the code
+# now this has to be the best move function to be used atm
+def best_move(bd, curr):
+    temp()
+    print_check(bd, curr)
+    return 6
+    # best_move = [-1]  # Initialize with an invalid move
+    # player = 1
+    # alpha = MIN_EVAL
+    # beta = MAX_EVAL
+    # best_score = MIN_EVAL
+
+    # for m in range(1, 10):  # Loop through all possible moves
+    #     if bd[curr][m] == EMPTY:  # If the move is legal
+    #         # make_move() bd[curr][m]  # Make the move
+    #         score = -alphabeta(1-player, 0, bd[curr], -beta, -alpha, best_move)  # Evaluate the move
+    #         bd[curr][m] = EMPTY  # Undo the move
+
+    #         if score > best_score:  # If this move is better than the previous best
+    #             best_score = score
+    #             best_move[0] = m  # Update the best move
+
+    # return best_move[0]  # Return the best move's index
+
 
 # just smth lol
 def temp():
@@ -109,6 +135,14 @@ def alphabeta( player, m, board, alpha, beta, best_move ):
         print("alpha is sssss ", alpha)
         print("best move values", best_move)
         return( alpha )
+#**********************************************************
+#   printing out the values of the current board
+#
+def print_check( bd, curr ):
+    # nothign much, just to check the O values are actually getting implemented
+    print("this is where", curr)
+    for i in range(9):
+        print(bd[curr][i])
 
 #**********************************************************
 #   Make specified move on the board and return game status
