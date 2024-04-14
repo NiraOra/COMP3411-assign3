@@ -85,6 +85,7 @@ def play(player):
     # player = WE_PLAYED
     game_state = STILL_PLAYING
     n = 6
+    depth = MAX_DEPTH
     
     # while we can still play basically
     while m < MAX_MOVE and game_state == STILL_PLAYING:
