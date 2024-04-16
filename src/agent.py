@@ -144,13 +144,13 @@ def mcts(player, curr):
                 best_score = score
                 print("well score", score, " and the best score", best_score, " at the move", move)
     
+    print("we got the best score as", best_score)
     return best_move
 
 # monte carlo simulation 
 def monte_carlo_simulation(player, curr, move):
     total_score = 0
     best_score = 0
-    counter = 0
     # example number of simulations
     # MAX CAN GO without too many illegal moves/timeouts is at 177. so set it at that for the current run
     # more simulations -> the more it can actually do shit ??? idk
@@ -168,10 +168,8 @@ def monte_carlo_simulation(player, curr, move):
         # total_score += score
         if score > best_score:
             best_score = score
-        print("Score is", score, "and best score atm is", best_score)
-    
-    print(counter, "yes")
-        
+        # print("Score is", score, "and best score atm is", best_score)
+       
     # basically the total score over the number of simulations
     return best_score
 
@@ -223,7 +221,7 @@ def opponent_winning_pattern(boards, bd):
       if (   (boards[bd][x] == EMPTY and boards[bd][y] == p and boards[bd][z] == p)
             or (boards[bd][x] == p and boards[bd][y] == p and boards[bd][z] == EMPTY)
             or (boards[bd][x] == p and boards[bd][y] == EMPTY and boards[bd][z] == p)):
-            print("losing")
+            # print("losing")
             return True
     
     # print("IDEAL")
@@ -233,6 +231,7 @@ def opponent_winning_pattern(boards, bd):
 def simulate_random_game(player, curr):
     # Create a copy of the current boards state
     # TODO: remove illegal move at X placed in 1 for cell 1
+    # TODO: always scoring zero at move 1
     temp_boards = np.copy(boards)
     current_player = player
     score = 0
@@ -262,10 +261,10 @@ def simulate_random_game(player, curr):
         if game_won(current_player, current_board) and current_player == WE_PLAYED:
             return score + 50
         elif game_won(current_player, current_board) and current_player == OPP_PLAYED:
-            return score - 1
+            return -1
         elif full_board():
             # no moves 
-            return 0
+            return 9
         
         score += SCORE_DEFAULT
         current_player = WE_PLAYED if current_player == OPP_PLAYED else OPP_PLAYED
@@ -346,15 +345,11 @@ def game_won(p, bd):
 # code from TTT.py file
 # returns True if the whole board is full
 def full_board():
-    b = 0
     for board in range(1, 10):
         for cell in range(1, 10):
-            if boards[board][cell] != EMPTY:
-                b += 1
-    if ( b == MAX_MOVE ):
-        return True
-    else:
-        return False
+            if boards[board][cell] == EMPTY:
+                return False
+    return True
 
 # current board full
 # def full_board(curr):
