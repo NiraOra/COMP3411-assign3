@@ -5,15 +5,16 @@
 #  CSE, UNSW
 
 import socket
+import random
 import sys
 import numpy as np
 
 
 # code from TTT.py
 # but this is our definition (as per agent.py); empty is 0 we played is 1 and opponent played is 2
-EMPTY = 0
+EMPTY = 2
 WE_PLAYED = 1
-OPP_PLAYED = 2
+OPP_PLAYED = 0
 # LETS SAY STILL PLAYING IS 4
 STILL_PLAYING = 4
 # NOT PLAYING 3
@@ -31,8 +32,12 @@ MAX_DEPTH     = 10
 MAX           = 2
 MIN           = 1
 
+SCORE_DEFAULT = 3
+
 MIN_EVAL = -1000000
 MAX_EVAL =  1000000
+
+PENALTY_AMOUNT = -50
 
 # a board cell can hold:
 #   0 - Empty
@@ -75,38 +80,201 @@ def print_board(board):
 
 # choose a move to play
 def play(player):
-    # TODO: OKAY IDEALLY CURR IS ALSO GLOBAL SO NO NEED TO CALL IT ANYWHERE. done
-    # print_board(boards)
-    # initialise an array to track all the moves and a second array to track the best moves
-    move = np.zeros(MAX_MOVE,dtype=np.int32)
-    best_move = np.zeros(MAX_MOVE,dtype=np.int32)
-    # initializing depth and player; player is currently us
-    m = 0
-    # player = WE_PLAYED
-    game_state = STILL_PLAYING
-    n = 6
-    depth = MAX_DEPTH
+    # # TODO: OKAY IDEALLY CURR IS ALSO GLOBAL SO NO NEED TO CALL IT ANYWHERE. done
+    # # print_board(boards)
+    # # initialise an array to track all the moves and a second array to track the best moves
+    # move = np.zeros(MAX_MOVE,dtype=np.int32)
+    # best_move = np.zeros(MAX_MOVE,dtype=np.int32)
+    # # initializing depth and player; player is currently us
+    # m = 0
+    # # player = WE_PLAYED
+    # game_state = STILL_PLAYING
+    # n = 6
+    # depth = MAX_DEPTH
     
-    # while we can still play basically
-    while m < MAX_MOVE and game_state == STILL_PLAYING:
-        # iterate to next element in the array
-        m += 1 
-        # then, we get the alpha beta pruning shit
-        alpha_beta(WE_PLAYED, m, curr, MIN_EVAL, MAX_EVAL, best_move)
-        # after the best move is updated, make it the move
-        move[m] = best_move[m]
-        # then, get game status
-        game_state = place(curr, move[m], player)
+    # # while we can still play basically
+    # while m < MAX_MOVE and game_state == STILL_PLAYING:
+    #     # iterate to next element in the array
+    #     m += 1 
+    #     # then, we get the alpha beta pruning shit
+    #     alpha_beta(WE_PLAYED, m, curr, MIN_EVAL, MAX_EVAL, best_move)
+    #     # after the best move is updated, make it the move
+    #     move[m] = best_move[m]
+    #     # then, get game status
+    #     game_state = place(curr, move[m], player)
 
-    # n = move[m] = best_move[m]
-    print("Player ", WE_PLAYED," is playing in cell ", move[m], "of board", curr)
-    #print("This is move index", m)
-    # place the current thing in, 
-    place(curr, move[m], 1)
-    # print_board(boards)
-    # hardly think we need to return this shit but whatever
-    return move[m]
+    # # n = move[m] = best_move[m]
+    # print("Player ", WE_PLAYED," is playing in cell ", move[m], "of board", curr)
+    # #print("This is move index", m)
+    # # place the current thing in, 
+    # place(curr, move[m], 1)
+    # # print_board(boards)
+    # # hardly think we need to return this shit but whatever
+    # return move[m]
+    # find move
+    move = mcts(player, curr)
+    print("Player", WE_PLAYED, "is playing in cell", move, "of board", curr)
+    # make move
+    place(curr, move, 1)
+    print_board(boards)
+    return move
+    
+###############################################################################  
 
+# ATTEMPTING MONTE CARLO TREE SEARCH 
+
+# for the MCTS, we are attempting to find the best move from 1 - 10 ig
+# we place it, then get score and then check if it the best move possible
+# if yes, then updated and keep going till we get to the part
+# return the best move possible
+def mcts(player, curr):
+    best_move = None
+    # okay so. we give more score to the one in the middle because there is more chance of it 
+    # having a draw if anything 
+    best_score = MIN_EVAL
+    
+    for move in range(1, 10):
+        if boards[curr][move] == EMPTY:
+            boards[curr][move] = player
+            score = monte_carlo_simulation(player, curr, move)
+            boards[curr][move] = EMPTY
+
+            if score > best_score:
+                best_move = move
+                best_score = score
+                print("well score", score, " and the best score", best_score, " at the move", move)
+    
+    print("we got the best score as", best_score)
+    return best_move
+
+# monte carlo simulation 
+def monte_carlo_simulation(player, curr, move):
+    total_score = 0
+    best_score = 0
+    # example number of simulations
+    # MAX CAN GO without too many illegal moves/timeouts is at 177. so set it at that for the current run
+    # more simulations -> the more it can actually do shit ??? idk
+    # simulations = 177
+    simulations = 81
+    
+    # for those many solutions, make a temporary board copy and make the move; find the score and
+    # add that to the total score
+    for _ in range(simulations):
+        temp_boards = np.copy(boards)
+        temp_boards[curr][move] = player
+
+        score = simulate_random_game(player, curr)
+        # counter += 1
+        # total_score += score
+        if score > best_score:
+            best_score = score
+        # print("Score is", score, "and best score atm is", best_score)
+       
+    # basically the total score over the number of simulations
+    return best_score
+
+# CHECK if opp is close to winning
+def opponent_winning_pattern(boards, bd):
+    # opponent = OPP_PLAYED
+    p = OPP_PLAYED
+    # # Check if placing the move allows the opponent to win horizontally
+    # if (temp_boards[curr][1] == opponent and temp_boards[curr][2] == opponent) or \
+    #    (temp_boards[curr][4] == opponent and temp_boards[curr][5] == opponent) or \
+    #    (temp_boards[curr][7] == opponent and temp_boards[curr][8] == opponent):
+    #     # print("HRERER")
+    #     return True
+    
+    # # similar case -> but like opposing ends (horizontal)
+    # if (temp_boards[curr][1] == opponent and temp_boards[curr][3] == opponent) or \
+    #    (temp_boards[curr][4] == opponent and temp_boards[curr][6] == opponent) or \
+    #    (temp_boards[curr][7] == opponent and temp_boards[curr][9] == opponent):
+    #     # print("letssee")
+    #     return True
+    
+    # # Check if placing the move allows the opponent to win vertically
+    # if (temp_boards[curr][1] == opponent and temp_boards[curr][4] == opponent) or \
+    #    (temp_boards[curr][2] == opponent and temp_boards[curr][5] == opponent) or \
+    #    (temp_boards[curr][3] == opponent and temp_boards[curr][6] == opponent):
+    #     # print("grr")
+    #     return True
+    
+    # # similar case -> opposing ends (vertical)
+    # if (temp_boards[curr][1] == opponent and temp_boards[curr][7] == opponent) or \
+    #    (temp_boards[curr][2] == opponent and temp_boards[curr][8] == opponent) or \
+    #    (temp_boards[curr][3] == opponent and temp_boards[curr][9] == opponent):
+    #     # print("cusee")
+    #     return True
+    
+    # # Check if placing the move allows the opponent to win diagonally
+    # if (temp_boards[curr][1] == opponent and temp_boards[curr][5] == opponent) or \
+    #    (temp_boards[curr][3] == opponent and temp_boards[curr][5] == opponent):
+    #     # print("whaevtes")
+    #     return True
+    
+    # # similar case: diagonal
+    # if (temp_boards[curr][1] == opponent and temp_boards[curr][9] == opponent) or \
+    #    (temp_boards[curr][3] == opponent and temp_boards[curr][7] == opponent):
+    #     # print("smmsm")
+    #     return True
+    
+    for x, y, z in ((1, 2, 3), (4, 5, 6), (7, 8, 9), (1, 4, 7), (2, 5, 8), (3, 6, 9), (1, 5, 9), (3, 5, 7)):
+      if (   (boards[bd][x] == EMPTY and boards[bd][y] == p and boards[bd][z] == p)
+            or (boards[bd][x] == p and boards[bd][y] == p and boards[bd][z] == EMPTY)
+            or (boards[bd][x] == p and boards[bd][y] == EMPTY and boards[bd][z] == p)):
+            # print("losing")
+            return True
+    
+    # print("IDEAL")
+    return False
+
+# example simulation
+def simulate_random_game(player, curr):
+    # Create a copy of the current boards state
+    # TODO: remove illegal move at X placed in 1 for cell 1
+    # TODO: always scoring zero at move 1
+    # TODO: score thing first (priority over certain moves) OR count the depth to win (return a tuple)
+    temp_boards = np.copy(boards)
+    current_player = player
+    score = 0
+    current_board = curr
+    
+    while True:
+        available_moves = [move for move in range(1, 10) if temp_boards[current_board][move] == EMPTY]
+        
+        for move in available_moves:
+            # temp_boards[current_board][move] = OPP_PLAYED
+            if opponent_winning_pattern(temp_boards, move):
+                # print("herereee")
+                # temp_boards[current_board][move] = EMPTY
+                # available_moves.remove(move)
+                return score + PENALTY_AMOUNT  # Block the opponent and exit the loop
+            # temp_boards[current_board][move] = EMPTY
+        
+        if not available_moves: # DRAW bc no moves
+            print("no moves")
+            return 0    
+        
+        # If no immediate threat, choose a random move
+        random_move = random.choice(available_moves)
+        
+        temp_boards[current_board][random_move] = current_player
+        
+        if game_won(current_player, current_board) and current_player == WE_PLAYED:
+            return score + 50
+        elif game_won(current_player, current_board) and current_player == OPP_PLAYED:
+            return -1
+        elif full_board():
+            # no moves 
+            return 9
+        
+        score += SCORE_DEFAULT
+        current_player = WE_PLAYED if current_player == OPP_PLAYED else OPP_PLAYED
+        current_board = random_move
+
+        # Implement other heuristics and enhancements as needed
+
+    # return random.randint(0, 100) 
+    
 # place a move in the global boards
 def place(current_board, num, player):
     global curr
@@ -178,15 +346,19 @@ def game_won(p, bd):
 # code from TTT.py file
 # returns True if the whole board is full
 def full_board():
-    b = 0
     for board in range(1, 10):
         for cell in range(1, 10):
-            if boards[board][cell] != EMPTY:
-                b += 1
-    if ( b == MAX_MOVE ):
-        return True
-    else:
-        return False
+            if boards[board][cell] == EMPTY:
+                return False
+    return True
+
+# current board full
+# def full_board(curr):
+#     for cell in range(1, 10):
+#         if boards[curr][cell] == EMPTY:
+#             return True
+    
+#     return False
 
 # UNUSED
 # function which calculates the score for the current player
