@@ -303,3 +303,44 @@
 
 # if __name__ == "__main__":
 #     main()
+
+
+# temp_boards = np.copy(boards)
+    # current_player = player
+    # current_board = curr
+    
+    # while True:
+    #     # get all available moves (ok so this should be based on 
+    #     # the board not being empty AND the opponent has no chance of winning at that point in time)
+    #     available_moves = [move for move in range(1, 10) if temp_boards[current_board][move] == EMPTY and not opponent_winning_pattern(temp_boards, move)]
+    #     # print("the available moves at that point is", available_moves)
+        
+    #     if not available_moves:
+    #         # Game is a draw if no more moves are available
+    #         return 0
+        
+    #     # prioritizing center (?)
+    #     if 5 in available_moves:
+    #         random_move = 5
+    #     else:
+    #         random_move = random.choice(available_moves)
+    #     temp_boards[current_board][random_move] = current_player
+        
+    #     # CHECK THIS FIRST -> so if there's a chance that the opponent wins then we have to return the penalty amount as answer
+    #     # if opponent_winning_pattern(temp_boards, current_board):
+    #     #     # print("your total score should NOT get it. whatevers")
+    #     #     return PENALTY_AMOUNT
+        
+    #     if game_won(current_player, current_board) and current_player == WE_PLAYED:
+    #         # Current player wins
+    #         return 1
+    #     elif game_won(current_player, current_board) and current_player == OPP_PLAYED:
+    #         # opponent won
+    #         return PENALTY_AMOUNT
+    #     elif full_board():
+    #         # Game is a draw
+    #         return 0
+        
+    #     # Switch players and boards for the next move
+    #     current_player = WE_PLAYED if current_player == OPP_PLAYED else OPP_PLAYED
+    #     current_board = random_move
