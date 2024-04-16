@@ -11,7 +11,7 @@ import numpy as np
 
 
 # code from TTT.py
-# but this is our definition (as per agent.py); empty is 0 we played is 1 and opponent played is 2
+# but this is our definition (as per agent.py); empty is 2 we played is 1 and opponent played is 0
 EMPTY = 2
 WE_PLAYED = 1
 OPP_PLAYED = 0
@@ -79,40 +79,9 @@ def print_board(board):
 ###############################################################################
 
 # choose a move to play
-def play(player):
+def play():
     # # TODO: OKAY IDEALLY CURR IS ALSO GLOBAL SO NO NEED TO CALL IT ANYWHERE. done
-    # # print_board(boards)
-    # # initialise an array to track all the moves and a second array to track the best moves
-    # move = np.zeros(MAX_MOVE,dtype=np.int32)
-    # best_move = np.zeros(MAX_MOVE,dtype=np.int32)
-    # # initializing depth and player; player is currently us
-    # m = 0
-    # # player = WE_PLAYED
-    # game_state = STILL_PLAYING
-    # n = 6
-    # depth = MAX_DEPTH
-    
-    # # while we can still play basically
-    # while m < MAX_MOVE and game_state == STILL_PLAYING:
-    #     # iterate to next element in the array
-    #     m += 1 
-    #     # then, we get the alpha beta pruning shit
-    #     alpha_beta(WE_PLAYED, m, curr, MIN_EVAL, MAX_EVAL, best_move)
-    #     # after the best move is updated, make it the move
-    #     move[m] = best_move[m]
-    #     # then, get game status
-    #     game_state = place(curr, move[m], player)
-
-    # # n = move[m] = best_move[m]
-    # print("Player ", WE_PLAYED," is playing in cell ", move[m], "of board", curr)
-    # #print("This is move index", m)
-    # # place the current thing in, 
-    # place(curr, move[m], 1)
-    # # print_board(boards)
-    # # hardly think we need to return this shit but whatever
-    # return move[m]
-    # find move
-    move = mcts(player, curr)
+    move = mcts(WE_PLAYED, curr)
     print("Player", WE_PLAYED, "is playing in cell", move, "of board", curr)
     # make move
     place(curr, move, 1)
@@ -149,13 +118,12 @@ def mcts(player, curr):
 
 # monte carlo simulation 
 def monte_carlo_simulation(player, curr, move):
-    total_score = 0
     best_score = 0
     # example number of simulations
     # MAX CAN GO without too many illegal moves/timeouts is at 177. so set it at that for the current run
     # more simulations -> the more it can actually do shit ??? idk
-    # simulations = 177
-    simulations = 81
+    # simulations = 177 (should be 81)
+    simulations = 370
     
     # for those many solutions, make a temporary board copy and make the move; find the score and
     # add that to the total score
@@ -169,69 +137,27 @@ def monte_carlo_simulation(player, curr, move):
         if score > best_score:
             best_score = score
         # print("Score is", score, "and best score atm is", best_score)
-       
+
     # basically the total score over the number of simulations
-    return best_score
+    return best_score/simulations
 
 # CHECK if opp is close to winning
-def opponent_winning_pattern(boards, bd):
-    # opponent = OPP_PLAYED
-    p = OPP_PLAYED
-    # # Check if placing the move allows the opponent to win horizontally
-    # if (temp_boards[curr][1] == opponent and temp_boards[curr][2] == opponent) or \
-    #    (temp_boards[curr][4] == opponent and temp_boards[curr][5] == opponent) or \
-    #    (temp_boards[curr][7] == opponent and temp_boards[curr][8] == opponent):
-    #     # print("HRERER")
-    #     return True
-    
-    # # similar case -> but like opposing ends (horizontal)
-    # if (temp_boards[curr][1] == opponent and temp_boards[curr][3] == opponent) or \
-    #    (temp_boards[curr][4] == opponent and temp_boards[curr][6] == opponent) or \
-    #    (temp_boards[curr][7] == opponent and temp_boards[curr][9] == opponent):
-    #     # print("letssee")
-    #     return True
-    
-    # # Check if placing the move allows the opponent to win vertically
-    # if (temp_boards[curr][1] == opponent and temp_boards[curr][4] == opponent) or \
-    #    (temp_boards[curr][2] == opponent and temp_boards[curr][5] == opponent) or \
-    #    (temp_boards[curr][3] == opponent and temp_boards[curr][6] == opponent):
-    #     # print("grr")
-    #     return True
-    
-    # # similar case -> opposing ends (vertical)
-    # if (temp_boards[curr][1] == opponent and temp_boards[curr][7] == opponent) or \
-    #    (temp_boards[curr][2] == opponent and temp_boards[curr][8] == opponent) or \
-    #    (temp_boards[curr][3] == opponent and temp_boards[curr][9] == opponent):
-    #     # print("cusee")
-    #     return True
-    
-    # # Check if placing the move allows the opponent to win diagonally
-    # if (temp_boards[curr][1] == opponent and temp_boards[curr][5] == opponent) or \
-    #    (temp_boards[curr][3] == opponent and temp_boards[curr][5] == opponent):
-    #     # print("whaevtes")
-    #     return True
-    
-    # # similar case: diagonal
-    # if (temp_boards[curr][1] == opponent and temp_boards[curr][9] == opponent) or \
-    #    (temp_boards[curr][3] == opponent and temp_boards[curr][7] == opponent):
-    #     # print("smmsm")
-    #     return True
-    
+def winning_pattern(boards, bd, p):
+    # check winning pattern lol
     for x, y, z in ((1, 2, 3), (4, 5, 6), (7, 8, 9), (1, 4, 7), (2, 5, 8), (3, 6, 9), (1, 5, 9), (3, 5, 7)):
       if (   (boards[bd][x] == EMPTY and boards[bd][y] == p and boards[bd][z] == p)
             or (boards[bd][x] == p and boards[bd][y] == p and boards[bd][z] == EMPTY)
             or (boards[bd][x] == p and boards[bd][y] == EMPTY and boards[bd][z] == p)):
-            # print("losing")
+            print("at at", x, y, z, "values", " for", s[p])
             return True
-    
-    # print("IDEAL")
+
     return False
 
 # example simulation
 def simulate_random_game(player, curr):
     # Create a copy of the current boards state
     # TODO: remove illegal move at X placed in 1 for cell 1
-    # TODO: always scoring zero at move 1
+    # TODO: always scoring zero at move 1 after like 8 moves made
     # TODO: score thing first (priority over certain moves) OR count the depth to win (return a tuple)
     temp_boards = np.copy(boards)
     current_player = player
@@ -242,8 +168,13 @@ def simulate_random_game(player, curr):
         available_moves = [move for move in range(1, 10) if temp_boards[current_board][move] == EMPTY]
         
         for move in available_moves:
+            # first priority: OUR winning pattern
+            if winning_pattern(temp_boards, move, WE_PLAYED):
+                # temp_boards[current_board][move] = WE_PLAYED
+                return score + MAX_EVAL
+            
             # temp_boards[current_board][move] = OPP_PLAYED
-            if opponent_winning_pattern(temp_boards, move):
+            if winning_pattern(temp_boards, move, OPP_PLAYED):
                 # print("herereee")
                 # temp_boards[current_board][move] = EMPTY
                 # available_moves.remove(move)
@@ -265,9 +196,17 @@ def simulate_random_game(player, curr):
             return -1
         elif full_board():
             # no moves 
-            return 9
+            # really small num; like 4
+            return NOT_PLAYING
         
         score += SCORE_DEFAULT
+        # here. okay. so if the move is 5 then we slightly weight it up (by 0.5 ?)
+        if random_move == 5:
+            score += 0.5
+        # if random_move is the corners then weight it by like 0.1 or smth ?
+        if random_move in (1, 3, 7, 9):
+            score += 0.1
+            
         current_player = WE_PLAYED if current_player == OPP_PLAYED else OPP_PLAYED
         current_board = random_move
 
@@ -280,57 +219,7 @@ def place(current_board, num, player):
     global curr
     curr = num
     boards[current_board][num] = player
-    # check if game has won over here
-    return STILL_PLAYING if game_won(player, current_board) else NOT_PLAYING
 
-    '''if game_won(player, board):
-        return # win
-    if full_board():
-        return # draw'''
-        
-###############################################################################   
-# nega max WITH alpha beta over here
-def alpha_beta(player, m, curr, alpha, beta, best_move):
-    # we are checking this first
-    best_eval = MIN_EVAL
-    # here, now if other player has won, return the value
-    if game_won(OPP_PLAYED, curr):
-        return MAX_EVAL - m
-    
-    # starting here
-    this_move = 0
-    # for 1-10, we are checking the moves being legal or not
-    for r in range( 1, 10):
-        # if move is legal (so it is empty)
-        if boards[curr][r] == EMPTY:         # move is legal
-            # so our current r is the value where it can be placed
-            this_move = r
-            # also making the move possible so we can check possibilities
-            boards[curr][this_move] = player 
-            # recursive check for possibilities 
-            this_eval = -alpha_beta(1 + player, m + 1, curr, -beta, -alpha, best_move)
-            # if this is not possible, empty the move (best_move is updated anyway)
-            boards[curr][this_move] = EMPTY; 
-            # if the value at this point is greater than the best evaluated move, then update the best move + best_eval
-            if this_eval > best_eval:
-                best_move[m] = this_move;
-                best_eval = this_eval
-                # HEURISTIC: if the best evaluated move is greater than alpha (should initially be the case bc alpha is a vv small number)
-                if best_eval > alpha:
-                    # update alpha
-                    alpha = best_eval
-                    # OUR HEURISTIC cutoff; so if alpha is greater than beta, return alpha
-                    if alpha >= beta:
-                        return( alpha )
-    
-    # this should be a draw btw; could be a case of a full board
-    # update this accordingly ??
-    if this_move == 0:
-        return (0)
-    else:
-        # really, return alpha to check and see how it goes
-        return(alpha)
-    
 ###############################################################################
 # code from TTT.py file
 def game_won(p, bd):
@@ -351,27 +240,6 @@ def full_board():
             if boards[board][cell] == EMPTY:
                 return False
     return True
-
-# current board full
-# def full_board(curr):
-#     for cell in range(1, 10):
-#         if boards[curr][cell] == EMPTY:
-#             return True
-    
-#     return False
-
-# UNUSED
-# function which calculates the score for the current player
-# function is WRONG
-def calculateScore(board, depth, player):
-    if full_board: # if the game is tied, then the player receives 0
-        return 0
-    elif game_won( player, board ): # if the player wins, then their score is determined by 
-                    # the number of moves taken.
-        return MAX_EVAL/depth
-    else: # else the opponent wins.
-        return MIN_EVAL/depth
-
 ###############################################################################
 
 # read what the server sent us and
@@ -396,7 +264,7 @@ def parse(string):
     if command == "second_move":
         # place the first move (randomly generated for opponent)
         place(int(args[0]), int(args[1]), 0)
-        return play(WE_PLAYED)  # choose and return the second move
+        return play()  # choose and return the second move
 
     # third_move(K,L,M) means that the first and second move were
     # in square L of sub-board K, and square M of sub-board L,
@@ -407,7 +275,7 @@ def parse(string):
         # place the second move (chosen by opponent)
         place(curr, int(args[2]), 0)
         # m += 1
-        return play(WE_PLAYED) # choose and return the third move
+        return play() # choose and return the third move
 
     # nex_move(M) means that the previous move was into
     # square M of the designated sub-board,
@@ -415,7 +283,7 @@ def parse(string):
     elif command == "next_move":
         # place the previous move (chosen by opponent)
         place(curr, int(args[0]), 0)
-        return play(WE_PLAYED) # choose and return our next move
+        return play() # choose and return our next move
 
     elif command == "win":      
         print("Yay!! We win!! :)")
