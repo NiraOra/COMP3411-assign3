@@ -232,6 +232,7 @@ def simulate_random_game(player, curr):
     # Create a copy of the current boards state
     # TODO: remove illegal move at X placed in 1 for cell 1
     # TODO: always scoring zero at move 1
+    # TODO: score thing first (priority over certain moves) OR count the depth to win (return a tuple)
     temp_boards = np.copy(boards)
     current_player = player
     score = 0
