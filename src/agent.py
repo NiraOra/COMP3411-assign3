@@ -37,7 +37,9 @@ SCORE_DEFAULT = 3
 MIN_EVAL = -1000000
 MAX_EVAL =  1000000
 
-PENALTY_AMOUNT = -50
+PENALTY_AMOUNT = -100
+WIN_AMOUNT = 100
+
 
 # a board cell can hold:
 #   0 - Empty
@@ -123,7 +125,7 @@ def monte_carlo_simulation(player, curr, move):
     # MAX CAN GO without too many illegal moves/timeouts is at 177. so set it at that for the current run
     # more simulations -> the more it can actually do shit ??? idk
     # simulations = 177 (should be 81)
-    simulations = 370
+    simulations = 100
     
     # for those many solutions, make a temporary board copy and make the move; find the score and
     # add that to the total score
@@ -148,7 +150,7 @@ def winning_pattern(boards, bd, p):
       if (   (boards[bd][x] == EMPTY and boards[bd][y] == p and boards[bd][z] == p)
             or (boards[bd][x] == p and boards[bd][y] == p and boards[bd][z] == EMPTY)
             or (boards[bd][x] == p and boards[bd][y] == EMPTY and boards[bd][z] == p)):
-            print("at at", x, y, z, "values", " for", s[p])
+            # print("at at", x, y, z, "values", " for", s[p])
             return True
 
     return False
@@ -167,11 +169,13 @@ def simulate_random_game(player, curr):
     while True:
         available_moves = [move for move in range(1, 10) if temp_boards[current_board][move] == EMPTY]
         
+        prioritized_moves = []
         for move in available_moves:
             # first priority: OUR winning pattern
             if winning_pattern(temp_boards, move, WE_PLAYED):
                 # temp_boards[current_board][move] = WE_PLAYED
-                return score + MAX_EVAL
+                prioritized_moves.append(move)
+                # return score + MAX_EVAL
             
             # temp_boards[current_board][move] = OPP_PLAYED
             if winning_pattern(temp_boards, move, OPP_PLAYED):
@@ -185,9 +189,19 @@ def simulate_random_game(player, curr):
             print("no moves")
             return 0    
         
-        # If no immediate threat, choose a random move
-        random_move = random.choice(available_moves)
-        
+        # if prioritized_moves:
+        #     move = prioritized_moves
+        # # If no immediate threat, choose a random move
+        # random_move = random.choice(available_moves)
+        if prioritized_moves:
+            score += 8
+            random_move = random.choice(prioritized_moves)
+        # elif 5 in available_moves:
+        #     score += 0.5
+        #     random_move = 5
+        else:
+            random_move = random.choice(available_moves)
+
         temp_boards[current_board][random_move] = current_player
         
         if game_won(current_player, current_board) and current_player == WE_PLAYED:
@@ -200,9 +214,6 @@ def simulate_random_game(player, curr):
             return NOT_PLAYING
         
         score += SCORE_DEFAULT
-        # here. okay. so if the move is 5 then we slightly weight it up (by 0.5 ?)
-        if random_move == 5:
-            score += 0.5
         # if random_move is the corners then weight it by like 0.1 or smth ?
         if random_move in (1, 3, 7, 9):
             score += 0.1
