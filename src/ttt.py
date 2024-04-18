@@ -45,31 +45,45 @@ WIN_AMOUNT = 2000
 # this is the current board to play in
 curr = 0 
 
+def uct_pruning(node, total_visits):
+    best_score = float("-inf")
+    best_child = None
+    exploration_constant = 1.41  # Adjust the exploration constant
+    
+    for child in node.children:
+        if child.visits == 0:
+            return child
+        
+        exploitation = child.wins / child.visits
+        exploration = math.sqrt(math.log(total_visits) / child.visits)
+        score = exploitation + exploration_constant * exploration
+        
+        if score > best_score:
+            best_score = score
+            best_child = child
+    
+    return best_child
+
 # MONTE CARLO TREE SEARCH
 def mcts(player, curr, boards):
     # least_depth = 81 # technically the amount you can fully go to. etc
     best_move = None
     best_score = MIN_EVAL
-    # so now, this has the nodes and shit right. like this is the current board
-    root_node = nd.Node(curr, boards) 
+    root_node = nd.Node(curr, boards)
     
     # Optimize move selection by considering only certain moves
+    # adding: root node addition to this shit
     possible_moves = [move for move in range(1, 10) if boards[curr][move] == EMPTY]
-    # possible node combos
     for move in possible_moves:
-        child = nd.Node(move, boards)
-        root_node.add_child(child)
+        root_node.add_child(nd.Node(move, boards))
+  
+    # for child in root_node.children: child.pretty_print()
     
-    # Generate child nodes for possible moves
-    # root_node.add_children([nd.Node(move, boards) for move in range(1, 10) if boards[curr][move] == EMPTY])
-    
-    # now all added; iterate through root node ?
     for child in root_node.children:
      # selecting a move to expand upon
+        # child_node = uct_pruning(node, total_visits)
         #boards[curr][move] = player
-        avg_score, depth = monte_carlo_selection(root_node, player, curr, move, boards)
-        # also get the uct pruning thing ?; so we do this before the whole thing or ???? idk
-        # child_node = uct_pruning(node, depth)
+        avg_score, depth = monte_carlo_selection(player, curr, child, boards)
         #boards[curr][move] = EMPTY
 
         if avg_score > best_score:
@@ -81,7 +95,7 @@ def mcts(player, curr, boards):
     return best_move
 
 # replaying this move for X simulations and find the average outcome
-def monte_carlo_selection(node, player, curr, move, boards):
+def monte_carlo_selection(player, curr, node, boards):
     total_score = 0
     simulations = 500
     
@@ -91,14 +105,13 @@ def monte_carlo_selection(node, player, curr, move, boards):
         temp_boards = np.copy(boards)
         #temp_boards[curr][move] = player
 
-        # give the node itself so the move is not required anymore ?
-        score, gotten_depth = simulate_random_game(move, temp_boards, player, curr, node)
+        score, gotten_depth = simulate_random_game(node, temp_boards, player, curr)
         total_score += score
         #print("mcts is simulating its", sims, "th game and returning total score of", total_score)
 
     # returns the average score of all the simulations for a given move
     average_score = total_score / simulations
-    print(f"this is the average score: {average_score:.2f} for the move {move} on board {curr}")
+    print(f"this is the average score: {average_score:.2f} for the move {node.move} on board {curr}")
     return average_score, gotten_depth
 
 # CHECK if opp is close to winning
@@ -114,24 +127,20 @@ def winning_pattern(boards, bd, p):
     return False
 
 # example simulation
-def simulate_random_game(first_move, temp_boards, player, curr, node):
-    # check the iterations and shit
+def simulate_random_game(first_node, temp_boards, player, curr):
     current_player = player # simulate a move for current player first
-    current_board = curr    # make the move on the current board               
+    current_board = curr    # make the move on the current board
+    # score = 0                
     depth = 1
     first_iteration = True
     
     while True:
         if first_iteration:
             first_iteration = False
-            temp_boards[curr][first_move] = player
-            chosen_move = first_move
+            temp_boards[curr][first_node.move] = player
+            chosen_move = first_node.move
         else:   
             available_moves = [move for move in range(1, 10) if temp_boards[current_board][move] == EMPTY]
-            # TODO: this makes an error for some reason ?? hmm
-            # for sppp in available_moves:
-            #     ideal = nd.Node(sppp, temp_boards)
-            #     node.add_child(ideal)
             
             if not available_moves: # DRAW because there are no possible moves
                 print("no moves left")
@@ -150,7 +159,7 @@ def simulate_random_game(first_move, temp_boards, player, curr, node):
             # print("giving penalty score for move:", random_move, "on board", current_board)
                 return (-WIN_AMOUNT), -depth #/ depth  # give a discouraging score and try to lose slower
         else:     
-             # if this moves lets us win, then return an encouraging score. try to win faster
+            # if this moves lets us win, then return an encouraging score. try to win faster
             if game_won(temp_boards, OPP_PLAYED, current_board):
                 # print("able to win!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 return (-WIN_AMOUNT), -depth #/ depth
@@ -161,6 +170,7 @@ def simulate_random_game(first_move, temp_boards, player, curr, node):
         current_player = WE_PLAYED if current_player == OPP_PLAYED else OPP_PLAYED # swap the players
         current_board = chosen_move # move to the new board
         depth += 1
+        
 
 def game_won(boards, p, bd):
     return (  ( boards[bd][1] == p and boards[bd][2] == p and boards[bd][3] == p )
