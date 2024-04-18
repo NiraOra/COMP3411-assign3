@@ -87,7 +87,7 @@ def play():
     # used ttt file to put all the code there; we are done in that sense
     move = ttt.mcts(WE_PLAYED, curr, boards)
     # temp: using the current agent file
-    # move = mcts(WE_PLAYED, curr, boards)
+    # move = mcts(WE_PLAYED, curr)
     print("Player", WE_PLAYED, "is playing in cell", move, "of board", curr)
     # make move
     place(curr, move, 1)
@@ -110,7 +110,7 @@ def mcts(player, curr):
         #boards[curr][move] = EMPTY
 
         if avg_score > best_score:
-            print(">>>>>> the least amount of depth", depth)
+            # print(">>>>>> the least amount of depth", depth)
             best_move = move
             best_score = avg_score
     
@@ -134,7 +134,7 @@ def monte_carlo_selection(player, curr, move):
 
     # returns the average score of all the simulations for a given move
     average_score = total_score / simulations
-    print(f"this is the average score: {average_score:.2f} for the move {move} on board {curr}")
+    # print(f"this is the average score: {average_score:.2f} for the move {move} on board {curr}")
     return average_score, gotten_depth
 
 # CHECK if opp is close to winning
