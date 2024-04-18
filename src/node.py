@@ -42,13 +42,14 @@ the opponent.
 MCTS [Monte Carlo Tree Search] (https://www.geeksforgeeks.org/ml-monte-carlo-tree-search-mcts/) is an algorithm that can be used to help search for all the possible moves
 using a tree-like data structure. This search has 4 phases: namely Initialisation, Selection, Expansion, Simulation and Back-propogation. 
 1. Initilisation: we assert that the root node and add children to it, after which we iterate through the number of simulations.
-2. Selection (using UBC1): here, we iterate through all the possible values of the node that can be added 
-3. Expansion: 
-4. Simulation:
-5. Back-propogation:
-
-
-
+2. Selection (using UBC1): here, we iterate through all the possible values of the node that can be made (thus, called child nodes) and expand the possibilities of that before we come to a selection criterion. 
+Using the formulae provided (https://www.geeksforgeeks.org/ml-monte-carlo-tree-search-mcts/), we determined that we should use the exploration constant 1.41 to decide
+whether this child node would be the best possible scenario to choose. This is also enhanced by RAVE heuristics _____. 
+3. Expansion: Here, we basically expand out the nodes and add all the child nodes we can, before we reach an end (where no more moves are possible as such).
+4. Simulation: After we determine this, we choose the child nodes and start simulating the game based on the connections that we found. This is where we
+also check if there is any winning moves possible with the opponent/with us, for which we basically boost our opportunity of winning. 
+5. Back-propogation: After we find a place where either we/opponent win, we back propogate and update the number of wins accordingly. Then, based on most wins, we choose
+the best possible move and then return this move. 
 '''
 
 
@@ -71,8 +72,8 @@ class Node:
         self.parent = parent
         self.visits = 0
         self.wins = 0
-        # self.rave_visits = 0
-        # self.rave_wins = 0
+        self.rave_visits = 0
+        self.rave_wins = 0
 
     def add_child(self, child):
         child.parent = self
@@ -90,41 +91,45 @@ class Node:
                     return True
             return False
 
-    # def update_rave_stats(self, result):
-    #     self.rave_visits += 1
-    #     if result == WE_PLAYED:
-    #         self.rave_wins += 1
-    #     elif result == OPP_PLAYED:
-    #         self.rave_wins -= 1
+    def update_rave_stats(self, result):
+        self.rave_visits += 1
+        if result == WE_PLAYED:
+            self.rave_wins += 1
+        elif result == OPP_PLAYED:
+            self.rave_wins -= 1
 
-    # to select a chidl that works
+    # to select a child that works
     def uct_select_child(self):
-        # can change ?
+        # get the constant, etc
         exploration_constant = 1.41
         best_score = float('-inf')
         best_child = None
         unvisited_children = []
-        
+
+        # for every child, check the visits; if it is not visited then append to the unvisited array
         for child in self.children:
             if child.visits == 0:
                 unvisited_children.append(child)
             else:
-                # formula taken from: https://www.geeksforgeeks.org/ml-monte-carlo-tree-search-mcts/
+                # otherwise, calculate the score
                 exploitation = child.wins / child.visits
                 exploration = exploration_constant * np.sqrt(np.log(self.visits) / child.visits)
                 score = exploitation + exploration
+                
+                # Incorporate RAVE statistics into the score so we can choose more effectively
+                rave_value = 0
+                if child.rave_visits > 0:
+                    rave_value = child.rave_wins / child.rave_visits
+                score += rave_value
+
+                # based on the biggest score, choose the best child
                 if score > best_score:
+                    # print(f">>>>>> Score at this point is {score:.2f}")
                     best_score = score
                     best_child = child
 
-        # if self.rave_visits == 0:
-        #     rave_value = 0
-        # else:
-        #     rave_value = self.rave_wins / self.rave_visits
-        #     score += rave_value
-
+        # If all children are unvisited, randomly select one from the unvisited array and return
         if best_child is None:
-            # If all children are unvisited, randomly select one
             best_child = random.choice(unvisited_children) if unvisited_children else random.choice(self.children)
 
         return best_child
@@ -136,9 +141,11 @@ class Node:
         
         while True:
             # Select a child node to explore
-            if not self.children:
+            if not self.children or self.game_draw(temp_board):
                 # Handle terminal state or leaf node creation
                 return TERMINAL_POINT
+            
+            # TODO: actually, need to add children here right?
             
             child = self.uct_select_child()  # Use a selection strategy to choose a child node
             
@@ -159,13 +166,13 @@ class Node:
                 # if this move lets us win, then return an encouraging score to win faster
                 if child.game_won(temp_board, small_board_idx, WE_PLAYED):
                     return WE_PLAYED
-                elif child.winning_pattern(temp_board, small_board_idx, OPP_PLAYED):
+                elif child.winning_pattern(temp_board, move_now, OPP_PLAYED):
                     return OPP_PLAYED  # give a discouraging score to lose slower
             else:     
                 # if this move lets us win, then return an encouraging score to win faster
                 if child.game_won(temp_board, small_board_idx, OPP_PLAYED):
                     return OPP_PLAYED
-                elif child.winning_pattern(temp_board, small_board_idx, WE_PLAYED):
+                elif child.winning_pattern(temp_board, move_now, WE_PLAYED):
                     return WE_PLAYED  # give a discouraging score to lose slower
             
             # iterate accordingly ?
@@ -173,14 +180,17 @@ class Node:
             current_player = WE_PLAYED if current_player == OPP_PLAYED else OPP_PLAYED
 
     def backpropagate(self, result):
+        # okay lets add RAVE too
         self.visits += 1
         # self.update_rave_stats(result)
         if result == WE_PLAYED:
             self.wins += 1
         elif result == OPP_PLAYED:
             self.wins -= 1
+        # IDK IF THIS GETS CHECKED AT ANY POINT IN TIME
         elif result == TERMINAL_POINT:
-            self.wins -= 1
+            self.wins += 0
+        self.update_rave_stats(result)
 
     def game_won(self, boards, bd, p):
         return (  ( boards[bd][1] == p and boards[bd][2] == p and boards[bd][3] == p )
@@ -248,5 +258,6 @@ def uct_search(board, curr):
         while node:
             node.backpropagate(result)
             node = node.parent
+    
     return max(root.children, key=lambda child: child.visits).move
 

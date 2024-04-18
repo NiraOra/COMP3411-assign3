@@ -125,7 +125,7 @@ def mcts(player, curr):
 # replaying this move for X simulations and find the average outcome
 def monte_carlo_selection(player, curr, move):
     total_score = 0
-    simulations = 1000
+    simulations = 500
     
     # for those many solutions, make a temporary board copy and make the move; find the score and
     # add that to the total score
