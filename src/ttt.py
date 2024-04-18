@@ -2,7 +2,7 @@ import socket
 import random
 import sys
 import numpy as np
-import node as nd
+from node import Node
 import math
 
 # code from TTT.py
@@ -69,13 +69,13 @@ def mcts(player, curr, boards):
     # least_depth = 81 # technically the amount you can fully go to. etc
     best_move = None
     best_score = MIN_EVAL
-    root_node = nd.Node(curr, boards)
+    root_node = Node(curr, boards)
     
     # Optimize move selection by considering only certain moves
     # adding: root node addition to this shit
     possible_moves = [move for move in range(1, 10) if boards[curr][move] == EMPTY]
     for move in possible_moves:
-        root_node.add_child(nd.Node(move, boards))
+        root_node.add_child(Node(move, boards))
   
     # for child in root_node.children: child.pretty_print()
     
@@ -133,23 +133,46 @@ def simulate_random_game(first_node, temp_boards, player, curr):
     # score = 0                
     depth = 1
     first_iteration = True
+    curr_node = first_node
+    chosen_node = None
+    # iterate the visits
+    first_node.visits += 1
     
     while True:
         if first_iteration:
             first_iteration = False
             temp_boards[curr][first_node.move] = player
+            # chosen_move = Node(first_node, temp_boards)
             chosen_move = first_node.move
+            # the current node is as follows
+            curr_node = Node(chosen_move, temp_boards)
+            chosen_node = curr_node
         else:   
             available_moves = [move for move in range(1, 10) if temp_boards[current_board][move] == EMPTY]
             
-            if not available_moves: # DRAW because there are no possible moves
-                print("no moves left")
+            # adding the children in ?
+            for move in available_moves:
+                # so these are the children that can potentially be formed ??
+                curr_node.add_child(Node(move, temp_boards))
+                
+            if not curr_node.children:
                 return 0
             
-            chosen_move = random.choice(available_moves)             # Choose a random move
-            temp_boards[current_board][chosen_move] = current_player # Place the random move
+            # if not available_moves: # DRAW because there are no possible moves
+            #     print("no moves left")
+            #     return 0
+            
+            # chosen_move = random.choice(available_moves)             # Choose a random move
+            # now, choosing a node but I am also printing it to check if the node is actually chosen
+            chosen_node = random.choice(curr_node.children)
+            # so it works so far. hm
+            # YES WORKED!
+            temp_boards[current_board][chosen_node.move] = current_player # Place the random move
             #print_board(temp_boards)
+            chosen_move = chosen_node.move
 
+        print(f">> START >> \n so the chosen node atm is {chosen_node.pretty_print()}")
+            
         if current_player == WE_PLAYED:
             # if this moves lets us win, then return an encouraging score. try to win faster
             if game_won(temp_boards, WE_PLAYED, current_board):
@@ -159,7 +182,7 @@ def simulate_random_game(first_node, temp_boards, player, curr):
             # print("giving penalty score for move:", random_move, "on board", current_board)
                 return (-WIN_AMOUNT), -depth #/ depth  # give a discouraging score and try to lose slower
         else:     
-            # if this moves lets us win, then return an encouraging score. try to win faster
+             # if this moves lets us win, then return an encouraging score. try to win faster
             if game_won(temp_boards, OPP_PLAYED, current_board):
                 # print("able to win!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 return (-WIN_AMOUNT), -depth #/ depth
@@ -168,7 +191,11 @@ def simulate_random_game(first_node, temp_boards, player, curr):
                 return (WIN_AMOUNT), depth #/ depth  # give a discouraging score and try to lose slower
 
         current_player = WE_PLAYED if current_player == OPP_PLAYED else OPP_PLAYED # swap the players
-        current_board = chosen_move # move to the new board
+        current_board = chosen_node.move # move to the new board
+        curr_node = chosen_node
+        print(f">> END >> \n so the current node we get in the end is {curr_node.pretty_print()}, which should be the same")
+        # so the next node chosen is also a node,, hmm
+        # print(curr_node.pretty_print())
         depth += 1
         
 
