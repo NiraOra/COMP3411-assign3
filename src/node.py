@@ -48,8 +48,39 @@ whether this child node would be the best possible scenario to choose. This is a
 3. Expansion: Here, we basically expand out the nodes and add all the child nodes we can, before we reach an end (where no more moves are possible as such).
 4. Simulation: After we determine this, we choose the child nodes and start simulating the game based on the connections that we found. This is where we
 also check if there is any winning moves possible with the opponent/with us, for which we basically boost our opportunity of winning. 
+
+While simulating, we are trying to reduce the computation time by:
+
+(i) Blocking the opponent if they have a winning pattern
+For example, consider the board numbered 5 from the UTTT where the opponent is X and the moves placed are as follows:
+[(1, 1), (1, 7), (7, 3), (3, 1), (1, 9)]*
+   X        O       X       O       X
+* The tuple is (board, spot chosen)
+
+_________________________
+| X . . | . .   | o . . |
+| . . . | . . . | . . . |
+| o . X | . . . | . . . |
+_________________________
+| , . . | . . . | . . . |
+| . . . | . . . | . . . |
+| . . . | . . . | . . . |
+_________________________
+| . . X | . . . | . . . |
+| . . . | . . . | . . . |
+| . . . | . . . | . . . |
+_________________________
+
+Where the opponent X has made a move at board 9 and we have to choose a move at board 9. 
+As seen from the example, if we chose spot 1 at board 9, then the opponent will have a chance to win the game by a pattern [1 5 9].
+So, to avoid this, we "block" the opponent by not considering this move and instead choosing any other move that will give us a better chance of winning. 
+
+(ii) Pruning off the branches which does not allow us to win the game
+
+Similar to checking the winning patters above, we chose to assign scores to the values that gave us a better chance of winning/not a better chance of winning. 
+
 5. Back-propogation: After we find a place where either we/opponent win, we back propogate and update the number of wins accordingly. Then, based on most wins, we choose
-the best possible move and then return this move. 
+the best possible move and then return this move. [RAVE updated -> if using RAVE]
 '''
 
 
@@ -72,13 +103,15 @@ class Node:
         self.parent = parent
         self.visits = 0
         self.wins = 0
+        self.losses = 0
+        self.score = 0
         self.rave_visits = 0
         self.rave_wins = 0
 
     def add_child(self, child):
         child.parent = self
         self.children.append(child)
-    
+        
     # winning pattern!
     def winning_pattern(self, board, bd, p):
     # check winning pattern lol
@@ -95,8 +128,6 @@ class Node:
         self.rave_visits += 1
         if result == WE_PLAYED:
             self.rave_wins += 1
-        elif result == OPP_PLAYED:
-            self.rave_wins -= 1
 
     # to select a child that works
     def uct_select_child(self):
@@ -117,10 +148,10 @@ class Node:
                 score = exploitation + exploration
                 
                 # Incorporate RAVE statistics into the score so we can choose more effectively
-                rave_value = 0
-                if child.rave_visits > 0:
-                    rave_value = child.rave_wins / child.rave_visits
-                score += rave_value
+                # rave_value = 0
+                # if child.rave_visits > 0:
+                #     rave_value = child.rave_wins / child.rave_visits
+                # score += rave_value
 
                 # based on the biggest score, choose the best child
                 if score > best_score:
@@ -138,16 +169,22 @@ class Node:
         # Simulate a random playout from this node
         temp_board = np.copy(self.board)
         current_player = WE_PLAYED
+        # score = 0
         
         while True:
+            available = [move for move in range(1, 10) if temp_board[self.move][move] == EMPTY]
+            for move in available:
+                self.add_child(Node(move, temp_board, self))
+            
             # Select a child node to explore
-            if not self.children or self.game_draw(temp_board):
+            if not self.children: 
                 # Handle terminal state or leaf node creation
                 return TERMINAL_POINT
             
             # TODO: actually, need to add children here right?
             
-            child = self.uct_select_child()  # Use a selection strategy to choose a child node
+            # child = self.uct_select_child()  # Use a selection strategy to choose a child node
+            child = random.choice(self.children)
             
             # Update the game state based on the selected child node
             small_board_idx = self.move
@@ -161,19 +198,20 @@ class Node:
             
             # random_move = random.choice(available_moves)
             temp_board[small_board_idx][move_now] = current_player
-
-            if current_player == WE_PLAYED:
+            
+            if current_player == OPP_PLAYED:
                 # if this move lets us win, then return an encouraging score to win faster
-                if child.game_won(temp_board, small_board_idx, WE_PLAYED):
-                    return WE_PLAYED
+                if child.game_won(temp_board, move_now, WE_PLAYED):
+                    return WIN_AMOUNT
                 elif child.winning_pattern(temp_board, move_now, OPP_PLAYED):
-                    return OPP_PLAYED  # give a discouraging score to lose slower
-            else:     
+                    # print(f">>>> YESS for {child.move}")
+                    return (-WIN_AMOUNT)  # give a discouraging score to lose slower
+            else:   
                 # if this move lets us win, then return an encouraging score to win faster
-                if child.game_won(temp_board, small_board_idx, OPP_PLAYED):
-                    return OPP_PLAYED
+                if child.game_won(temp_board, move_now, OPP_PLAYED):
+                    return (-WIN_AMOUNT)
                 elif child.winning_pattern(temp_board, move_now, WE_PLAYED):
-                    return WE_PLAYED  # give a discouraging score to lose slower
+                    return WIN_AMOUNT  # give a discouraging score to win faster
             
             # iterate accordingly ?
             self = child
@@ -182,15 +220,19 @@ class Node:
     def backpropagate(self, result):
         # okay lets add RAVE too
         self.visits += 1
-        # self.update_rave_stats(result)
-        if result == WE_PLAYED:
+        if result == WIN_AMOUNT:
             self.wins += 1
-        elif result == OPP_PLAYED:
-            self.wins -= 1
-        # IDK IF THIS GETS CHECKED AT ANY POINT IN TIME
-        elif result == TERMINAL_POINT:
-            self.wins += 0
-        self.update_rave_stats(result)
+        elif result == (-WIN_AMOUNT):
+            self.losses += 1
+        #     self.wins -= 1
+        # self.update_rave_stats(result)
+        # if result == WE_PLAYED:
+        #     self.wins += 1
+        # 
+        # # IDK IF THIS GETS CHECKED AT ANY POINT IN TIME
+        # elif result == TERMINAL_POINT:
+        #     self.wins += 0
+        # self.update_rave_stats(result)
 
     def game_won(self, boards, bd, p):
         return (  ( boards[bd][1] == p and boards[bd][2] == p and boards[bd][3] == p )
@@ -258,6 +300,25 @@ def uct_search(board, curr):
         while node:
             node.backpropagate(result)
             node = node.parent
+       
+    # USING THE RATIO TO CALCULATE THE BEST MOVE     
+    ratio = 0  
+    best_move = max(root.children, key=lambda child: child.visits).move 
     
-    return max(root.children, key=lambda child: child.visits).move
+    for child in root.children:
+        # print(f" why {child.wins} with losses {child.losses} with visits {child.visits}")
+        visit_temp = child.visits
+        win_temp = child.wins
+        
+        if win_temp == 0:
+            continue
+        else: 
+            avg = visit_temp/win_temp
+            
+            if avg > ratio:
+                ratio = avg
+                best_move = child.move
+    # print(f">>>>> max wins move is: {mommm} for the node visits {whwhw}")
+    
+    return best_move
 
