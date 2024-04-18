@@ -8,7 +8,7 @@ import socket
 import random
 import sys
 import numpy as np
-import node as nd
+import node
 import math
 import ttt
 
@@ -84,9 +84,14 @@ def print_board(board):
 
 # choose a move to play
 def play():
+    # TODO: THERES 3 ALGOS RN THAT CAN BE USED
     # used ttt file to put all the code there; we are done in that sense
-    move = ttt.mcts(WE_PLAYED, curr, boards)
+    # move = ttt.mcts(WE_PLAYED, curr, boards)
+    # init node: lol
+    # or can use the node
+    move = node.uct_search(boards, curr)
     # temp: using the current agent file
+    # Or using the agent.py currently
     # move = mcts(WE_PLAYED, curr)
     print("Player", WE_PLAYED, "is playing in cell", move, "of board", curr)
     # make move
@@ -120,7 +125,7 @@ def mcts(player, curr):
 # replaying this move for X simulations and find the average outcome
 def monte_carlo_selection(player, curr, move):
     total_score = 0
-    simulations = 500
+    simulations = 1000
     
     # for those many solutions, make a temporary board copy and make the move; find the score and
     # add that to the total score
